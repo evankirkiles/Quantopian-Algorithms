@@ -2,8 +2,7 @@
 # Trend recognition algorithm
 # Evan Kirkiles, 2018
 #####################################################################
-# This is a trend detecting algorithm for uncorrelated assets
-# Universe: 
+# This is a trend detecting algorithm for uncorrelated assets 
 import quantopian.algorithm as algo
 import pandas as pd
 from quantopian.pipeline import Pipeline
@@ -63,11 +62,12 @@ def trendanalysis(context, data):
     # Check most recent price point to determine trend
     for s in context.secs:
         
-        ## NEED TO CYCLE THROUGH THE CRITICAL POINTS TO KEEP UPDATING THE TRENDS
-        
         # Calculate average drawdown volatility for past [context.lookback] days
         daily_drawdown = prices[s]/prices[s].rolling(context.lookback).max() - 1.0
         std_daily_drawdown = daily_drawdown.std()
+        
+        # Update critical points
+        updatecritpoints(context, data, prices, s)
         
         # If prevous critical points go min-max-min, must be increasing
         if (context.past3critpoints[s][0].values()[0] < context.past3critpoints[s][1].values()[0]) and (
@@ -76,7 +76,7 @@ def trendanalysis(context, data):
                 # When new price exceeds previous maximum, record trend strength
                 if (prices[s][-1] > context.past3critpoints[s][1].values()[0]):
                     
-                    # Trend strength is ARoC from min to new point divided by drawdown
+                    # Trend strength metric is ratio of distance from 
                     context.trendstrength[s] = (prices[s][-1] - context.past3critpoints[s][1].values()[0]) / (
                         std_daily_drawdown * (prices.index[-1] - context.past3critpoints[s][1].keys()[0]).days)
         
@@ -94,7 +94,34 @@ def trendanalysis(context, data):
         # If there is no identifiable trend, trend will be None
         else:
             context.trendstrength[s] = None
-            
+         
+# Update moving critical point array (called every day in trendanalysis)
+def updatecritpoints(context, data, prices, s):
+    
+    # If prevous critical points go min-max-min, must be increasing
+    if (context.past3critpoints[s][0].values()[0] < context.past3critpoints[s][1].values()[0]) and (
+            context.past3critpoints[s][2].values()[0] < context.past3critpoints[s][1].values()[0]):
+        
+        # Detect new maximums
+        if prices[s][-2] > prices[s][-1]:
+            context.past3critpoints.update({
+               s: [{prices.index[-2]: prices[s][-2]},
+                   context.past3critpoints[s][0],
+                   context.past3critpoints[s][1]]
+               })
+        
+    # If prevous critical points go max-min-max, must be decreasing
+    elif (context.past3critpoints[s][0].values()[0] > context.past3critpoints[s][1].values()[0]) and (
+        context.past3critpoints[s][2].values()[0] > context.past3critpoints[s][1].values()[0]):
+        
+        # Detect new minimums
+        if prices[s][-2] < prices[s][-1]:
+            context.past3critpoints.update({
+               s: [{prices.index[-2]: prices[s][-2]},
+                   context.past3critpoints[s][0],
+                   context.past3critpoints[s][1]]
+               })
+        
 # Initialize moving critical point array
 def initcritpoints(context, data):
     if context.critpointsfilled:
