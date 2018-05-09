@@ -1,9 +1,10 @@
 ###########################################################################################
-# Oil Companies Pairs Trading
+# Pairs Trading
 # Evan Kirkiles, 2018
 ###########################################################################################
 # Based off of Ernie Chan's pairs trading with hedge ratio.
-# Uses cointegrated oil company pairs found in the research environment.
+# Uses cointegrated healthcare company pairs found in the research environment.
+# Initially used oil companies, but oil market far too volatile for pairs trading.
 
 import numpy as np
 import statsmodels.api as sm
@@ -21,8 +22,7 @@ def initialize(context):
     set_symbol_lookup_date('2014-01-01')
     
     # Set stock pairs to be traded from research
-    context.stock_pairs = [
-                           (symbol('PXD'), symbol('STO'))]
+    context.stock_pairs = [(symbol('LPNT'), symbol('UHS'))]
     context.all_stocks=[]
     for pair in context.stock_pairs:
         context.all_stocks.append(pair[0])
